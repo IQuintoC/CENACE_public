@@ -1,0 +1,56 @@
+import requests
+from bs4 import BeautifulSoup
+import os
+
+# URL de la página
+url = "https://www.cenace.gob.mx/Paginas/SIM/Reportes/PreEnerServConMDA.aspx"
+
+# Parámetros del formulario (pueden variar según la página)
+form_data = {
+    'ctl00$PlaceHolderMain$ddlTipo': 'Precios Marginales Locales MDA',
+    'ctl00$PlaceHolderMain$ddlPeriodo': 'Diario',
+    'ctl00$PlaceHolderMain$ddlSistema': 'BCA',
+    'ctl00$PlaceHolderMain$txtFecha': '22/04/2024'  # Fecha actual, puedes cambiarla según tus necesidades
+}
+
+# Realizar la solicitud POST con los parámetros del formulario
+response = requests.post(url, data=form_data)
+
+# Verificar si la solicitud fue exitosa
+if response.status_code == 200:
+    # Analizar el contenido HTML de la respuesta
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    # Encontrar todos los elementos <a> que contienen enlaces de descarga
+    links = soup.find_all('a', href=True)
+    
+    # Carpeta donde se guardarán los archivos descargados
+    download_folder = "downloads"
+    
+    # Crear la carpeta si no existe
+    os.makedirs(download_folder, exist_ok=True)
+    
+    # Iterar sobre los enlaces encontrados
+    for link in links:
+        href = link['href']
+        
+        # Verificar si el enlace es un enlace de descarga
+        if href.endswith('.xlsx') or href.endswith('.xls'):
+            # Construir la URL completa del archivo
+            download_url = "https://www.cenace.gob.mx" + href
+            
+            # Obtener el nombre del archivo desde la URL
+            filename = os.path.basename(download_url)
+            
+            # Ruta completa donde se guardará el archivo descargado
+            filepath = os.path.join(download_folder, filename)
+            
+            # Descargar el archivo
+            with open(filepath, 'wb') as file:
+                print(f"Descargando {filename}...")
+                response = requests.get(download_url)
+                file.write(response.content)
+                
+            print(f"{filename} descargado correctamente.")
+else:
+    print("Error al acceder a la página:", response.status_code)
